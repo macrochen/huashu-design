@@ -191,7 +191,8 @@ const App = () => (
 ```markdown
 ---
 title: 什么是 LLM
-voice: S_JSdgdWk22   # 可选，覆盖 .env 默认音色
+tts: edge            # 可选：edge（默认，免费免 key）| doubao（需自备 key）
+voice: zh-CN-XiaoxiaoNeural   # 可选，不填用该引擎默认音色
 speed: 1.0           # 可选，0.5-2.0
 gap: 0.4             # 段间静音秒数，默认 0.3
 ---
@@ -219,6 +220,7 @@ LLM 全称 Large Language Model，[[cue:bigmodel]]它是一个有几千亿参数
 ```ts
 {
   title: string,
+  tts: 'edge' | 'doubao',       // 实际用的引擎
   voice: string | null,
   speed: number,
   gap: number,
@@ -296,7 +298,7 @@ const { NarrationStage, Subtitles } = NarrationStageLib;
 <Subtitles karaoke karaokeColor="#0a84ff" />   {/* 自定义高亮色 */}
 ```
 
-- 依赖 timeline chunks 里的 `words` 字级时间戳（narrate-pipeline.mjs 默认输出；豆包 TTS v3 `enable_subtitle`，需 2.0 资源，仅中英文）
+- 依赖 timeline chunks 里的 `words` 字级时间戳（narrate-pipeline.mjs 默认输出：Edge 引擎用 `WordBoundary` 事件；豆包引擎用 v3 `enable_subtitle`，需 2.0 资源，仅中英文）
 - 整行显示、逐字变色，行切分复用 ≤maxLen + 不跨句号规则（由 words 拼行，与发音严格对齐）
 - chunk 没有 words 时自动回落普通 chunk 模式，调用方无需判断
 
@@ -356,20 +358,47 @@ NarrationStage 自动检测 `window.__recording`：
 - **实播模式**（默认）：跟随 audio 元素的 currentTime，用户暂停/拖动 seek 都能同步
 - **录视频模式**（render-video.js 设置 `window.__recording = true`）：rAF wall-clock 自驱动从 0 开始，暴露 `window.__seek(t)` 给 render-video.js 复位
 
-## 三个脚本
+## 脚本
 
 | 脚本 | 输入 | 输出 |
 |---|---|---|
-| `scripts/cloud/tts-doubao.mjs` | 单段文本 | 单个 mp3 + 实测时长 |
+| `scripts/edge/tts-edge.mjs` | 单段文本 | 单个 mp3 + 实测时长 + 词级时间戳（**默认引擎**）|
+| `scripts/cloud/tts-doubao.mjs` | 单段文本 | 单个 mp3 + 实测时长（可选引擎）|
 | `scripts/narrate-pipeline.mjs` | 解说稿 .md | voiceover.mp3 + timeline.json |
 | `scripts/mix-voiceover.sh` | 视频 + voiceover.mp3 [+ BGM] | 带音频的 MP4 |
 | `scripts/render-narration.sh` | 解说 HTML + timeline.json | 最终 MP4（录制 + 混音一条龙）|
 
-## .env 配置
+## 语音引擎
 
-> ⚠️ TTS 是可选云能力：解说稿文本会发送到豆包 TTS 官方接口（openspeech.bytedance.com），
-> 使用你自己的 key。脚本首次调用需 `--yes` 或 `HUASHU_CLOUD_OK=1` 显式确认，
-> endpoint 强制校验字节官方域名白名单。数据流向声明见仓库根 `SECURITY.md`。
+两个引擎，**默认 Edge**：开箱即用，不花钱、不用注册、不用配 key。
+
+| | edge（默认） | doubao（可选） |
+|---|---|---|
+| 成本 | 免费 | 按量计费（自己的账号） |
+| 准备 | `pip install -U "edge-tts>=7.3"` | `.env` 里填 key |
+| 确认门 | 不需要 | 需要 `--yes` 或 `HUASHU_CLOUD_OK=1` |
+| 音色 | `zh-CN-XiaoxiaoNeural` 等（`--help` 列出常用） | 豆包音色 ID / 克隆音色 |
+| 词级时间戳 | 支持（`WordBoundary`） | 支持（2.0 资源 + 中英文） |
+
+切换方式：`--tts doubao`，或在解说稿 frontmatter 写 `tts: doubao`。优先级 `--tts` > frontmatter > 默认 edge。
+
+### 默认引擎 edge 的安装
+
+```bash
+pip install -U "edge-tts>=7.3"
+```
+
+> **版本必须 ≥ 7.3。** 微软改过 `Sec-MS-GEC` 令牌校验，7.2.x 及更早会握手 403
+> （`WSServerHandshakeError`）。脚本检测到 403 会直接报错让你升级，不会傻等重试。
+
+python 解释器不一定是 PATH 上第一个 `python3`（macOS 上常见：前面排着系统自带的，
+你 `pip install` 的却是 homebrew 那个）。用 `HUASHU_PYTHON` 指定：
+
+```bash
+HUASHU_PYTHON=/opt/homebrew/bin/python3 node scripts/narrate-pipeline.mjs --script script.md --out-dir _narration
+```
+
+### 可选引擎 doubao（需要自己的 key）
 
 skill 根目录下 `.env`（已 gitignore）：
 
@@ -389,10 +418,14 @@ DOUBAO_TTS_VOICE_ID=zh_female_xiaohe_uranus_bigtts
 
 `DOUBAO_TTS_RESOURCE_ID` 默认按音色自动推断：`S_` 克隆音色使用 `seed-icl-1.0`，`uranus` 官方音色使用 `seed-tts-2.0`，其他官方音色使用 `seed-tts-1.0`。
 
+> ⚠️ 走 doubao 时解说稿文本会发送到豆包 TTS 官方接口（openspeech.bytedance.com），
+> 使用你自己的 key。脚本需 `--yes` 或 `HUASHU_CLOUD_OK=1` 显式确认，
+> endpoint 强制校验字节官方域名白名单。数据流向声明见仓库根 `SECURITY.md`。
+
 ## 标准工作流（10 步）
 
 1. **写解说稿**：解说稿是源代码。先把整段口播写完整，标段标题 `## scene-id`，关键句前加 `[[cue:xx]]`
-2. **跑 narrate-pipeline**：`node scripts/narrate-pipeline.mjs --script script.md --out-dir _narration --yes`（`--yes`=确认文本发送豆包TTS）
+2. **跑 narrate-pipeline**：`node scripts/narrate-pipeline.mjs --script script.md --out-dir _narration`（默认 Edge 引擎，免费免 key，**不用加 `--yes`**；要用豆包才 `--tts doubao --yes`）
 3. **听整段 voiceover.mp3**：节奏不对回去改稿。**这一步决定整片质量上限**
 4. **🛑 设计前先回答铁律**：hero element 是什么？它在每段是什么状态？跨场景怎么 morph？答不上不要写代码
 5. **写动画 HTML**：用 NarrationStage + 一个或几个 hero element 跨 scene 演戏
@@ -406,7 +439,10 @@ DOUBAO_TTS_VOICE_ID=zh_female_xiaohe_uranus_bigtts
 
 | 问题 | 解决 |
 |---|---|
-| TTS API 报错 | 检查 .env 里 `DOUBAO_TTS_API_KEY`，或 `DOUBAO_APP_ID` + `DOUBAO_ACCESS_KEY` 是否正确 |
+| `没找到能 import edge_tts 的 python3` | `pip install -U "edge-tts>=7.3"`；装到别的解释器就用 `HUASHU_PYTHON` 指定 |
+| `握手被拒（403）` / `WSServerHandshakeError` | edge-tts 版本太旧（<7.3），`pip install -U "edge-tts>=7.3"` |
+| 网络偶发超时 / `Cannot connect to host` | 脚本已内置 4 次退避重试；持续失败检查代理/网络 |
+| doubao 引擎 TTS API 报错 | 检查 .env 里 `DOUBAO_TTS_API_KEY`，或 `DOUBAO_APP_ID` + `DOUBAO_ACCESS_KEY` 是否正确 |
 | 某段音频明显比脚本长/短 | 该段文本里有奇怪标点或 emoji，TTS 解析异常 → 改稿 |
 | cue absoluteTime 不准 | 段内子段拼接时 ffmpeg 有问题 → 检查 mp3 编码一致性 |
 | 录视频结果有黑屏 | render-video.js 没拿到 `window.__ready` 信号 → 检查 NarrationStage 是否正常挂载 |

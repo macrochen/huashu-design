@@ -2,14 +2,15 @@
 
 This document exhaustively declares every network destination, credential touchpoint, subprocess, and deletion this skill can perform, so that users and automated security reviewers can verify the claims against the code.
 
-**TL;DR: the core pipeline (HTML design → render → MP4/PDF/PPTX export) runs 100% locally with zero network calls and zero API keys. All cloud-touching code is isolated in `scripts/cloud/`, is strictly optional, uses only keys you supply, sends data only to the corresponding vendor's official API, and refuses to run without explicit consent (`--yes` flag or `HUASHU_CLOUD_OK=1`). There is no telemetry. No data is ever sent to any server controlled by the skill author.**
+**TL;DR: the core pipeline (HTML design → render → MP4/PDF/PPTX export) runs 100% locally with zero network calls and zero API keys. All cloud-touching code is isolated in `scripts/cloud/`, is strictly optional, uses only keys you supply, sends data only to the corresponding vendor's official API, and refuses to run without explicit consent (`--yes` flag or `HUASHU_CLOUD_OK=1`). The one exception outside `scripts/cloud/` is the default voiceover engine (`scripts/edge/tts-edge.mjs`) — synthesizing speech inherently requires a network call, so it sends the narration text to Microsoft's free Edge read-aloud endpoint; it needs no key and no account. There is no telemetry. No data is ever sent to any server controlled by the skill author.**
 
 ## Complete list of network destinations
 
 | Host | Where | What is sent | When |
 |---|---|---|---|
+| `speech.platform.bing.com` (Microsoft Edge read-aloud TTS) | `scripts/edge/tts-edge.mjs` — **default voiceover engine**, invoked by `scripts/narrate-pipeline.mjs` | The narration text you want synthesized. **No key, no account, no cost.** Nothing else is transmitted | Only when you run the voiceover pipeline |
 | `ark.cn-beijing.volces.com` (Volcengine Ark, ByteDance official API) | `scripts/cloud/ai-review-video.py` | Compressed segments of **your own rendered video**, for AI quality review, authenticated with **your own** `ARK_API_KEY` | Only when you run it, and only after the consent gate |
-| `openspeech.bytedance.com` (ByteDance official TTS API) | `scripts/cloud/tts-doubao.mjs` (also invoked by `scripts/narrate-pipeline.mjs`) | The narration text you want synthesized, with **your own** key. The endpoint is validated against a hardcoded hostname allowlist (`*.bytedance.com` / `*.volces.com`) — a tampered `.env` cannot redirect your key or text elsewhere | Only when you run it, and only after the consent gate |
+| `openspeech.bytedance.com` (ByteDance official TTS API) | `scripts/cloud/tts-doubao.mjs` (optional voiceover engine, invoked by `scripts/narrate-pipeline.mjs --tts doubao`) | The narration text you want synthesized, with **your own** key. The endpoint is validated against a hardcoded hostname allowlist (`*.bytedance.com` / `*.volces.com`) — a tampered `.env` cannot redirect your key or text elsewhere | Only when you opt into it, and only after the consent gate |
 | `commons.wikimedia.org` (official Wikimedia API) | `scripts/fetch_images.py` | Image search keywords; downloads CC/public-domain images with license info printed for review | Only when the agent fetches stock imagery for a content design |
 | Brand official websites, `simpleicons.org`, Google favicon service | `references/brand-asset-protocol.md` (instructions, no script) | Plain GET requests to download publicly served logos/brand assets | Only when you ask for a brand-specific design |
 | Reference works the agent chose (any URL or image URL it passes; the script does not filter, so it would also open a local file or localhost address if given one) | `scripts/ref_board.py` | Plain GET via headless Chromium to screenshot a reference page or image, saved next to the board (default `refs/`) | Only when the agent builds a reference board during the three-direction step |
@@ -26,7 +27,9 @@ That is the entire list. `grep -rn "https://" --include="*.py" --include="*.mjs"
 
 ## Explicit consent gate
 
-Both cloud scripts print exactly what will be sent to which host and exit before any network call unless you pass `--yes` or set `HUASHU_CLOUD_OK=1`. Everything else in this skill never needs the gate because it never leaves your machine.
+The two key-bearing cloud scripts (`scripts/cloud/tts-doubao.mjs`, `scripts/cloud/ai-review-video.py`) print exactly what will be sent to which host and exit before any network call unless you pass `--yes` or set `HUASHU_CLOUD_OK=1`.
+
+The default voiceover engine (`scripts/edge/tts-edge.mjs`) is not gated, because there is no credential to protect and nothing billable to trigger — it prints a one-line notice naming the host instead. Everything else in this skill never needs the gate because it never leaves your machine.
 
 ## Local files written outside the skill directory
 
@@ -45,7 +48,7 @@ Set `HUASHU_DESIGN_HOME` to move them; delete the folder to forget everything. B
 
 ## Subprocesses
 
-All subprocess calls invoke local media tools only: `ffmpeg`, `ffprobe`, `ffplay`, Playwright/Chromium for HTML rendering and screenshots. No shell-to-network combinations, no curl-pipe-sh patterns.
+All subprocess calls invoke local media tools only: `ffmpeg`, `ffprobe`, `ffplay`, Playwright/Chromium for HTML rendering and screenshots, and — for the default voiceover engine only — a local `python3` running the `edge-tts` package (`scripts/edge/edge_synth.py`). No shell-to-network combinations, no curl-pipe-sh patterns.
 
 ## File deletion
 
@@ -53,7 +56,7 @@ All subprocess calls invoke local media tools only: `ffmpeg`, `ffprobe`, `ffplay
 
 ## Dependencies
 
-Mainstream registry packages only (`playwright`, `pillow`, `sharp`, `pptxgenjs`, `pdf-lib`, `requests`), installed via standard `npm`/`pip`/`uv` — no binary downloads from arbitrary URLs. One documented exception to be aware of: `npx hyperframes init` (optional animation backend, see `references/hyperframes-backend.md`) installs 19 hyperframes documentation skills into `~/.claude/skills/`. This is called out with a warning in the docs before the command.
+Mainstream registry packages only (`playwright`, `pillow`, `sharp`, `pptxgenjs`, `pdf-lib`, `requests`, `edge-tts`), installed via standard `npm`/`pip`/`uv` — no binary downloads from arbitrary URLs. One documented exception to be aware of: `npx hyperframes init` (optional animation backend, see `references/hyperframes-backend.md`) installs 19 hyperframes documentation skills into `~/.claude/skills/`. This is called out with a warning in the docs before the command.
 
 ## Hooks
 

@@ -55,7 +55,7 @@
 - 终渲后可选 AI 看片评审（云能力，自备 key、显式确认，见 SECURITY.md）：`uv run "$HD/scripts/cloud/ai-review-video.py" --video <成片> --context 导演稿.md --yes`；无 key 用 `scripts/verify-video.sh` 截帧人工看（`ai-video-review.md`）
 - 完整说明：`video-export.md`
 
-**水印**：动画产出默认带「Created by Huashu-Design」（幻灯片、信息图、原型、网页一律不加）；第三方品牌的非官方致敬动画加前缀「非官方出品 · 」；用户说不要就去掉。模板见 `video-export.md` 末节。
+**水印**：不加。成片是用户的作品，画面里不放任何 skill 署名/推广文字。用户主动要求时再按 `video-export.md` 的方法加他自己的品牌标识。
 
 **Gate**：≥45s 的长片渲染前，`scripts/design-gate-hook.sh` 会查 `direction-approved.md`，缺文件就拦下渲染；用户明说跳过时用 `SKIP_DESIGN_GATE=1` 放行。
 

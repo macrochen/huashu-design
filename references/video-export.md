@@ -198,7 +198,7 @@ GIF 只能 256 色。一次 pass 的 GIF 会把全动画色彩压到 256 色通�
 - [ ] Duration 参数与 HTML 里的实际动画时长匹配
 - [ ] HTML 中 Stage 检测 `window.__recording` 强制 loop=false（手写 Stage 必查；用 `assets/animations.jsx` 自带）
 - [ ] 结尾 Sprite 的 `fadeOut={0}`（视频末帧不淡出）
-- [ ] 含「Created by Huashu-Design」水印（仅动画场景必加；第三方品牌作品加「非官方出品 · 」前缀。详见 SKILL.md §「Skill 推广水印」）
+- [ ] 画面里没有任何 skill 署名/推广水印（成片是用户的作品，只放用户自己的品牌标识）
 
 ## 交付时附带的说明
 
@@ -227,21 +227,15 @@ GIF 只能 256 色。一次 pass 的 GIF 会把全动画色彩压到 256 色通�
 | 「太大了」 | MP4：提高 CRF 到 23-28；GIF：降分辨率到 600 或 fps 到 10 |
 | 「GIF 太糊」 | 提高 `gif_width` 到 1280；或者建议用 MP4 代替（微信朋友圈也支持） |
 | 「要竖屏 9:16」 | 改 HTML 源的 `--width=1080 --height=1920`，重新录 |
-| 「加水印」 | ffmpeg 加 `-vf "drawtext=..."` 或 `overlay=` 一个 PNG |
+| 「加水印」 | 问清放什么文字/logo 和位置，再用 `-vf "drawtext=..."` 或 `overlay=` 一个 PNG 叠上去。**默认不加任何水印** |
 | 「要透明背景」 | MP4 不支持 alpha；用 WebM VP9 + alpha 或 APNG |
 | 「要无损」 | CRF 改 0 + preset veryslow（文件会大 10 倍） |
 
-## Skill 推广水印模板（仅动画导出用）
+## 关于水印
 
-SKILL.md 规定动画 MP4/GIF 默认带水印，模板如下（深底改用 `rgba(255,255,255,0.35)`；第三方品牌动画前缀「非官方出品 · 」）：
+**默认不加。** 动画 MP4/GIF 里不出现任何 skill 署名或推广文字——成片是用户的作品，署名位置属于用户自己的品牌。
 
-```jsx
-<div style={{
-  position: 'absolute', bottom: 24, right: 32,
-  fontSize: 11, color: 'rgba(0,0,0,0.4)',
-  letterSpacing: '0.15em', fontFamily: 'monospace',
-  pointerEvents: 'none', zIndex: 100,
-}}>
-  Created by Huashu-Design
-</div>
-```
+- 用户没提 → 什么都不加
+- 用户要给自己的品牌加角标 → 按上面「加水印」一行处理，文字/位置/透明度由用户定
+- 用户拿第三方品牌做致敬动画 → 是否标「非官方出品」由用户决定，不要默认替他加
+

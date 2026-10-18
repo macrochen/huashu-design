@@ -31,6 +31,10 @@ npx skills add alchaincyf/huashu-design
 
 > 🆕 **3.0: bolder directions, and projects that stop looking alike.** Six thumbnails first, then the three strongest become real designs; the style library grows to 84 (new App and Chinese & East Asian sections), each with a specimen; reference works are screenshotted before they are borrowed from; plus a facts-only design check and a "look ledger" that remembers what you've already shipped. [How it works](#core-mechanics)
 
+> 🔧 **This repo is a personal fork with two changes over upstream:**
+> 1. **Voiceover now defaults to Edge TTS** — free, no API key, no `.env`; just `pip install -U "edge-tts>=7.3"`. Doubao is now opt-in (`--tts doubao`). See [`references/voiceover-pipeline.md`](references/voiceover-pipeline.md).
+> 2. **Watermark removed** — the rendered video no longer carries a "Created by Huashu-Design" credit; on-screen attribution belongs to you.
+
 [See it work](#demo-gallery) · [Install](#install) · [What it does](#what-it-does) · [How it works](#core-mechanics) · [vs. Claude Design](#vs-claude-design)
 
 > 📖 **Note for English readers**: this skill is built by a Chinese-speaking developer. The skill's agent prompts (`SKILL.md`, `references/*.md`) are in Chinese but the agent is bilingual — works fine with English tasks. The demos below are the English parallel versions; the Chinese ones are in the default [Chinese README](README.md).
@@ -259,7 +263,7 @@ Claude Design is a **better graphics tool**. Huashu-design makes **the graphics-
 
 ## Security & Data Flow
 
-The core pipeline (design → render → MP4/PDF/PPTX export) runs **100% locally — zero network calls, zero API keys**. Cloud features (Doubao TTS narration, AI video review) are isolated in `scripts/cloud/`, fully optional: your own keys, official vendor APIs only, and an explicit `--yes` consent gate before anything leaves your machine. No telemetry; nothing is ever sent to any author-controlled server. The 3.0 local records (taste experience, look ledger) are written only to `~/.huashu-design/` and never uploaded; the reference board only visits URLs when you have the agent screenshot reference works. Every outbound host, credential touchpoint, and deletion boundary is exhaustively declared in [SECURITY.md](SECURITY.md) — point your agent at it and verify against the code.
+The core pipeline (design → render → MP4/PDF/PPTX export) runs **100% locally — zero network calls, zero API keys**. Voiceover is the one inherent exception: synthesizing speech needs a network call, so the default engine sends only the narration text to Microsoft's free Edge read-aloud endpoint — no key, no account, no cost. Cloud features (Doubao TTS narration, AI video review) are isolated in `scripts/cloud/`, fully optional: your own keys, official vendor APIs only, and an explicit `--yes` consent gate before anything leaves your machine. No telemetry; nothing is ever sent to any author-controlled server. The 3.0 local records (taste experience, look ledger) are written only to `~/.huashu-design/` and never uploaded; the reference board only visits URLs when you have the agent screenshot reference works. Every outbound host, credential touchpoint, and deletion boundary is exhaustively declared in [SECURITY.md](SECURITY.md) — point your agent at it and verify against the code.
 
 ---
 

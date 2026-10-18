@@ -33,6 +33,10 @@ npx skills add alchaincyf/huashu-design
 
 > 🆕 **3.0：三个方向更敢，项目之间也不再长一个样。** 先出六张缩略图再挑三版做成真稿；风格库扩到 84 种（新增 App、中文与东亚两个分区），每种都有样张；参照作品先截图再动手；带一个只量事实的设计体检，和一本记住你做过什么样子的外观账本。[详见核心机制](#核心机制)
 
+> 🔧 **本仓库是个人 fork，相对上游改了两处：**
+> 1. **配音默认走 Edge TTS** —— 免费、无需 API key、无需 `.env`，`pip install -U "edge-tts>=7.3"` 即可用。豆包改为可选（`--tts doubao`）。详见 [`references/voiceover-pipeline.md`](references/voiceover-pipeline.md)。
+> 2. **去掉成片水印** —— 不再默认叠「Created by Huashu-Design」，画面署名完全留给用户。
+
 [看效果](#demo-画廊) · [安装](#装上就能用) · [能做什么](#能做什么) · [核心机制](#核心机制) · [和 Claude Design 的关系](#和-claude-design-的关系)
 
 </div>
@@ -289,7 +293,7 @@ Claude Design 是**更好的图形工具**，huashu-design 是**让图形工具�
 
 ## 安全与数据流
 
-核心链路（设计→渲染→MP4/PDF/PPTX导出）**100%本地运行，零网络零key**。云能力（豆包TTS配音、AI看片评审）全部隔离在 `scripts/cloud/`，完全可选：用你自己的key、只发对应厂商官方API、首次调用需 `--yes` 显式确认。无telemetry，没有任何数据发往作者服务器。3.0 新增的本机记录（品味经验、外观账本）只写在 `~/.huashu-design/`，从不上传；参考板只在你让 agent 截参考作品时访问那些网址。全部出站域名、密钥处理、删除边界的穷举声明见 [SECURITY.md](SECURITY.md)，欢迎用你的agent对着代码逐条核验。
+核心链路（设计→渲染→MP4/PDF/PPTX导出）**100%本地运行，零网络零key**。配音是唯一的例外——合成语音本身就要联网，所以默认引擎只把解说文本发到微软免费的 Edge 朗读端点，无需 key、无需账号、不花钱。云能力（豆包TTS配音、AI看片评审）全部隔离在 `scripts/cloud/`，完全可选：用你自己的key、只发对应厂商官方API、首次调用需 `--yes` 显式确认。无telemetry，没有任何数据发往作者服务器。3.0 新增的本机记录（品味经验、外观账本）只写在 `~/.huashu-design/`，从不上传；参考板只在你让 agent 截参考作品时访问那些网址。全部出站域名、密钥处理、删除边界的穷举声明见 [SECURITY.md](SECURITY.md)，欢迎用你的agent对着代码逐条核验。
 
 ---
 
